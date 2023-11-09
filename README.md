@@ -127,4 +127,30 @@ Se puede detener el proceso con un Ctl + c, si este no se detiene puedes hacerlo
 
 ## Sistemas operativos en c
 
+### Procesos padres y procesos hijos
+Un archivo creado en .c sin ejecutar es una entidad estatica 
+
+Cuando se ejectua pasa a ser una entidad dinamica y es lo que se conoce como
+
+**Procesos:** programa en ejecucion
+
+**fork:** Crea un nuevo proceso (duplica el existente). A este nuevo proceso se le llama proceso hijo.
+
+**USO**
+
+```c
+int rc = fork(); Esta linea crea duplica el proceso.
+if (rc < 0){
+    //Aca se ejecuta lo que tenga que hacer en caso de fallar 
+exit(1);
+} else if (rc == 0) 
+{
+    //Aca se ejecuta todo lo que queremos que haga el nuevo proceso. conocido como proceso hijo.
+} else {
+    // Aca se ejecuta todo lo del proceso padre, el existente
+}
+```
+
+
+
 
