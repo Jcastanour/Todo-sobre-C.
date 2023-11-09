@@ -35,6 +35,21 @@ Para cadena de textos es muy util usar
 
 **Referencia:** `&` se le pasa la variable a la que quieres apuntar
 
+### Compilacion
+
+- La mayoria de sistemas linux/unix (mac es basado en unix) ya traen compilador para C/C++. Generamente GNU GCC
+- Windows es necesario instalar un compilador (Ej. MinGw, cygwin)
+
+
+**Los archivos se deben guardar con la extencion .c**
+La compilacion se hace a traves del comando:
+```bash
+gcc -o ejecutable archivo.c
+```
+Se crea un ejecutable que se ejecuta con:
+`./ejecutable`
+
+
 ## Notacion basica de linux
 
 **Listar procesos en linux**
@@ -58,3 +73,58 @@ Para cadena de textos es muy util usar
 Importante saber que se puede usar: `#man command` para ver el manual de ese comando
 
 Tambien existe `#command -- help` da una ayuda o soporte sobre el comando.
+
+### Monitorear los procesos
+
+Usamos el comando `top`, para monitorear en tiempo real los procesos, muy similar a ps, pero en tiempo real.
+
+### Instalacion en linux
+
+Aveces se necesitara instalar herramientas por consola, esto lo hacemos con:
+Ejemplo
+
+#### Herramientas oficiales
+```c
+yum group install "Development Tools"
+```
+
+#### Herramientas no oficiales
+
+Se descarga un archivo comprimido .tar.gz
+
+! Util usar herramientas como:
+* Putty: para conectarse de forma remota.
+* winscp: conectarse a los archivos de forma remota.
+
+Descomprimir:
+```c
+tar -zxvf <nombre_archivo.tar.gz>
+```
+
+y luego se ejecutan:
+```bash
+./configure
+make
+make install
+```
+
+**comando size:** `size nombre_archivo_ejecutable`
+
+| text   | data   | bss  | dec   | hex  | filename                        |
+|--------|--------|------|-------|------|---------------------------------|
+| 12276  | 2044   | 1072 | 15492 | 3cc4 | nombre_archivo_ejecutable       |
+
+- **text:** Tamaño de la sección de código ejecutable.
+- **data:** Tamaño de la sección de datos (variables inicializadas).
+- **bss:** Tamaño de la sección BSS (bloque sin inicializar, para variables no inicializadas).
+- **dec:** Suma total de text, data y bss.
+- **hex:** Representación hexadecimal de dec.
+- **filename:** Nombre del archivo ejecutable.
+
+Se puede detener el proceso con un Ctl + c, si este no se detiene puedes hacerlo desde una consola de comando con:
+
+**comando kill:** `kill -9 <pid>` "Mata" todo el proceso y lo detiene del todo.
+
+## Sistemas operativos en c
+
+
