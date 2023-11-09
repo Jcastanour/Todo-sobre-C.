@@ -57,4 +57,4 @@ Para cadena de textos es muy util usar
 
 Importante saber que se puede usar: `#man command` para ver el manual de ese comando
 
-Tambien existe `#command -- help` da una ayuda o soporte sobre
+Tambien existe `#command -- help` da una ayuda o soporte sobre el comando.
