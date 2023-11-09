@@ -128,6 +128,8 @@ Se puede detener el proceso con un Ctl + c, si este no se detiene puedes hacerlo
 ## Sistemas operativos en c
 
 ### Procesos padres y procesos hijos
+Se debe incluir al incio `#include <unistd.h>` Este trae consigo, el fork, exec, sleep.
+
 Un archivo creado en .c sin ejecutar es una entidad estatica 
 
 Cuando se ejectua pasa a ser una entidad dinamica y es lo que se conoce como
@@ -136,10 +138,10 @@ Cuando se ejectua pasa a ser una entidad dinamica y es lo que se conoce como
 
 **fork:** Crea un nuevo proceso (duplica el existente). A este nuevo proceso se le llama proceso hijo.
 
-**USO**
+**USO DE FORK**
 
 ```c
-int rc = fork(); Esta linea crea duplica el proceso.
+int rc = fork(); Esta linea duplica el proceso.
 if (rc < 0){
     //Aca se ejecuta lo que tenga que hacer en caso de fallar 
 exit(1);
@@ -150,6 +152,96 @@ exit(1);
     // Aca se ejecuta todo lo del proceso padre, el existente
 }
 ```
+
+**Execlp:** Sobreescribe la imagen del proceso, la reemplaza por lo que se le diga
+
+**USO DE FORK**
+
+```c
+int rc = fork(); //Duplicamos el proceso, por lo que tenemos en este caso 2 procesos
+if (rc < 0){
+    //Aca se ejecuta lo que tenga que hacer en caso de fallar 
+exit(1);
+} else if (rc == 0) 
+{
+    //Aca se ejecuta todo lo que queremos que haga el nuevo proceso. conocido como proceso hijo. Supongamos que queremos que haga otro proceso existente
+    excec("ls") //proceso ls lista los directorios.
+} else {
+    // Aca se ejecuta todo lo del proceso padre, el existente
+}
+```
+
+### Hilos
+
+Se debe incluir al inicio `#include <pthread.h>`
+Estos se compilan con:
+`gcc -pthread -o <archivo_ejecutable> <archivo_fuente>.c`
+
+Un proceso tiene unas tareas indivduales que se puede realizar de forma independientes, esto son los **hilos**.
+
+Ejemplo. Programa que realiza dos tareas: la primera tarea imprime números pares y la segunda tarea imprime números impares.
+
+- Proceso: Sería tu programa completo, que incluye ambas tareas.
+- Hilos: Serían las unidades más pequeñas de ejecución dentro de ese programa. Un hilo estaría encargado de imprimir números pares, y el otro de imprimir números impares.
+
+**USO DE HILOS**
+
+**En C**
+```c
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+int main(int argc, char *argv[]){
+  pthread_t h1, h2; //Aca solo se va a decir que esas variables van a ser tipo hilo
+
+  pthread_create(&h1, NULL, funcion, NULL); //Se crea el hilo y se ejecuta, no necesariamente en ese orden
+  pthread_create(&h2, NULL, funcion, NULL); //Se crea el hilo y se ejecuta, no necesariamente en ese orden
+
+  printf("main() sigue su ejecucion\n");
+  printf("main() sigue su ejecucion\n");
+  printf("main() sigue su ejecucion\n");
+
+  pthread_join(h1, NULL); //Bloquea al proceso principal y lo pone a esperar hasta que este hilo finalice
+  pthread_join(h2, NULL); //Bloquea al proceso principal y lo pone a esperar hasta que este hilo finalice
+  return 0;
+}
+```
+
+**Ejemplo en python**
+
+```py
+from threading import Thread
+
+def funcion():
+  print("Soy un hilo ident = ",get_ident())
+  return
+
+t1 = Thread(target=funcion) #se crea
+t2 = Thread(target = funcon) #se crea
+t1.start() #se inicia
+t2.start() #se inicia
+
+print("hilo principal sigue su ejecucion")
+print("hilo principal sigue su ejecucion")
+print("hilo principal sigue su ejecucion")
+
+t1.join() #se pone a esperar al principal a que termine
+t2.join() #se pone a esperar al principal a que termine
+
+print("Termina principal")
+```
+
+Los hilos se ejecutan pero no tienen un orden definido, ellos pasan a una cola de listos, y ahi se ejecutan segun sea lo mejor y determine el sistema operativo.
+Para definirle un orden debemos de decirlo explicitamente.
+
+**Uso de funciones**
+
+**Slep:** Sleep(tiempo de segundos que el hilo debe dormir) --> Usado para realizar retrasos controlados, por si necesitamos que un hilo espere antes de hacer ciertas acciones.
+
+
+
+
 
 
 
