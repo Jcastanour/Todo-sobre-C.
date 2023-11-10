@@ -1,3 +1,10 @@
+# Tabla de Contenido
+- [Sección 1](#sección-1)
+- [Sección 2](#sección-2)
+  - [Subsección 2.1](#subsección-21)
+  - [Subsección 2.2](#subsección-22)
+- [Sección 3](#sección-3)
+
 # Todos los codigos de C
 
 ## Notacion basica de c
@@ -586,3 +593,4 @@ int main() {
   return 0;
 }
 ```
+
