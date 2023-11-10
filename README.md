@@ -171,6 +171,9 @@ exit(1);
 }
 ```
 
+**Wait:** Se usa el wait generalmente en el proceso padre, este es bloqueante, por lo que bloquea al proceso padre hasta que el hijo no termine (cuidado con quedarse en un estado de bloqueado, y que el hijo nunca termine)
+
+
 ### Hilos
 
 Se debe incluir al inicio `#include <pthread.h>`
@@ -239,6 +242,139 @@ Para definirle un orden debemos de decirlo explicitamente.
 
 **Slep:** Sleep(tiempo de segundos que el hilo debe dormir) --> Usado para realizar retrasos controlados, por si necesitamos que un hilo espere antes de hacer ciertas acciones.
 
+### IPC Y SINCRONIZACION DE PROCESOS
+
+Se suele usar los terminos de productor hace algo y luego escribe(write) y consumidor lee (read) y con eso que le pasaron hace lo suyo.
+
+Estos son modelos de comunicacion, comunicar procesos/hilos.
+
+
+#### Paso de mensajes
+
+##### Paso de mensajes nombrado
+Se debe especificar explicitamente el nombre del proceso con el que se le va a mandar
+
+- `send(Proceso p, message)`
+- `receive(Proceso q, message)`
+
+##### Paso de mensajes indirecto
+A traves de MQ (colas de mensajes) o puertos (sockets)
+
+- send(MQ A, message)
+- receive(MQ A, message)
+
+#### Tuberias (Pasos de mensajes)
+- Escribe en un lado de la tuberia y el otro lado lo pone a disposicion para leer.
+- un proceso le ingresa datos por un lado y el otro proceso los saca por el otro lado.
+- unidreccional.
+
+##### Tuberias sin nombre
+Solo se pueden usar si fueron heredadas de un fork
+
+- Fildes es un descriptor, [0] leer en la tuberia y [1] para escribir en la tuberia.
+
+```c
+int pipe(int fildes[2]) //fildes[2] --> fildes[0] y fildes[1]
+```
+
+##### Tuberias con nombre
+Puede acceder cualquier proceso de la maquina
+
+Para crear tuberia:
+```c
+fd = int mkfifo(const char *nombre_tuberia, mode_t,mode) //Esto devuelve un descriptor fd
+```
+
+**Mode:** Ejemplo. 0666 (permisos de write-read)
+
+Para abrir la tuberia:
+```c
+int open(const char *nombre_tuberia,int flags)
+```
+
+Leer una tuberia
+```c
+ssize_t read(int fd, void *buf, size_t count);
+```
+
+- `ssize_t` es un tipo de datos usado para representar tamaño de bloque de datos
+- count es el numero de bytes que se van a leer
+- buf es un area donde se almacenan los datos, en este caso el buffer
+
+Leer una tuberia
+```c
+ssize_t write(int fd, const void *buf, size_t count);
+```
+
+- const indica que no se debe modificar, en este caso que no se debe modificar los datos a los que apunta buf.
+
+Para cerrar la tuberia:
+```c
+int close(int fd)
+```
+
+**FLAGS**
+| Flag            | Descripción                                               |
+|-----------------|-----------------------------------------------------------|
+| `O_RDONLY`      | Abrir el archivo en modo solo lectura                     |
+| `O_WRONLY`      | Abrir el archivo en modo solo escritura                   |
+| `O_RDWR`        | Abrir el archivo en modo lectura/escritura                |
+| `O_CREAT`       | Si el archivo no existe, créalo                            |
+| `O_TRUNC`       | Trunca el archivo a longitud cero al abrirlo              |
+| `O_APPEND`      | Abre el archivo para escritura al final                   |
+| `O_EXCL`        | Si se utiliza con `O_CREAT`, falla si el archivo ya existe |
+
+
+**EJEMPLOS DE WRITE Y READ**
+
+**Caso de write:**
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+int main(int argc, char *args[]){
+  const char ptuberia[] = "/tmp/ptuberia";
+
+  if (mkfifo(ptuberia, 0666)<0){
+    perror("error al crear mkfifo");
+    return 1;
+  }
+
+  int fd = open(ptuberia,O_WRONLY);
+
+  int dato_entra = 200;
+  
+  write(fd,&dato_entra,sizeof(int));
+  printf("Escribiendo %d\n",dato_entra);
+  close(fd);
+  return 0;
+}
+```
+
+**Caso de read:**
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+int main(int argc, char *args[]){
+  const char ptuberia[] = "/tmp/ptuberia";
+  int fd = open(ptuberia,O_RDONLY);
+  int dato_sale;
+
+  read(fd,&dato_sale,sizeof(int));
+  printf("Dato que sale de tuberia %d\n",dato_sale);
+
+  close(fd);
+  return 0;
+}
+```
 
 
 
