@@ -28,6 +28,8 @@
         - [Solucion Peterson](#solucion-peterson)
     - [Semaforos](#semaforos)
       - [Semaforos con nombre](#semaforos-con-nombre)
+    - [Mutex](#mutex)
+      - [Variables condicionales](#variables-condicionales)
     - [EJEMPLO CON USO DE SEMAFOROS, USO DE FORK Y MEMORIA COMPARTIDA.](#ejemplo-con-uso-de-semaforos-uso-de-fork-y-memoria-compartida)
 
 
@@ -536,6 +538,65 @@ sem_post(sem);
 - `sem_wait(sem)` se usa para avisar que entro.
 - `sem_post(sem)` se usa para avisar que salio.
 
+### Mutex
+Es un objeto que se usa para sincronizar hilos en linux y proteger la region critica.
+
+- Es una variable de tipo `pthread_mutex_t`
+- se debe incluir `#include <pthread.h>`
+
+Se crea:
+```c
+int pthread_mutex_init(pthread_mutex_t *mutex,
+                        const pthread_mutexattr_t *attr);
+```
+
+- `attr:` apuntador a una estructura iniciliazada desde antes con los parametros deseasdos del mutex
+
+Para destruirlo:
+```c
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+```
+
+bloquear mutex para proteger:
+```c
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+```
+
+**Patron basico de uso**
+```c
+pthread_mutex_lock(&mimutex);
+/* región crítica */
+pthread_mutex_unlock(&mimutex);
+/* región no crítica */
+```
+
+#### Variables condicionales
+Los mutex que se encarguen de garantizar la exclusion mutua y la variable condicional de señalizar a los demas hilos
+
+Se crea con:
+```c
+int pthread_cond_init(pthread_cond_t *cond,
+                        const pthread_condattr_t *attr);
+```
+
+Para avisar que hubo un cambio:
+```c
+int pthread_cond_signal(pthread_cond_t *cond); // para avisar a 1 solo
+int pthread_cond_broadcast(pthread_cond_t *cond); // para avisarle a todos
+```
+
+Para quedarse esperando a que haya un cambio:
+```c
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+```
+
+- Toca indicar que mutex estamos esperando.
+
+Se destruye con:
+```c
+int pthread_cond_destroy(pthread_cond_t *cond);
+```
+
 ### EJEMPLO CON USO DE SEMAFOROS, USO DE FORK Y MEMORIA COMPARTIDA.
 En este ejemplo se comunica un proceso padre con un proceso hijo, el hijo le envio una cadena de textos en minuscula y el padre la recibe y la convierte en mayuscula.
 
@@ -619,4 +680,7 @@ int main() {
   return 0;
 }
 ```
+
+
+
 
