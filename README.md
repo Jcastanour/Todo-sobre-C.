@@ -248,7 +248,6 @@ Se suele usar los terminos de productor hace algo y luego escribe(write) y consu
 
 Estos son modelos de comunicacion, comunicar procesos/hilos.
 
-
 #### Paso de mensajes
 
 ##### Paso de mensajes nombrado
@@ -323,6 +322,7 @@ int close(int fd)
 | `O_TRUNC`       | Trunca el archivo a longitud cero al abrirlo              |
 | `O_APPEND`      | Abre el archivo para escritura al final                   |
 | `O_EXCL`        | Si se utiliza con `O_CREAT`, falla si el archivo ya existe |
+| `MAP_SHARED`    | Compartido entre multiples procesos                         |
 
 
 **EJEMPLOS DE WRITE Y READ**
@@ -376,9 +376,213 @@ int main(int argc, char *args[]){
 }
 ```
 
+### Memoria compartida en linux con POSIX
 
+Se deben compilar con:
+`# gcc -o <archivo_resultado> <archivo_fuente.c> -lrt`
 
+Se implementa mediante archivos mapeados en memoria.
 
+Es un archivo que corresponde a una region de memoria, donde los procesos se enganchan y leen o escriben.
 
+- Posix es un estandar
 
+#### Crear / abrir memoria compartida
 
+Se crea con:
+```c
+fd = shm_open(name, O_CREAT | O_RDWR, 0666);
+```
+
+Se debe establecer un tamaño con:
+```c
+ftruncate(fd, int size)
+```
+
+Se debe ahora enganchar / mapear a esa area de memoria compartida
+```c
+ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+```
+
+Se puede escribir con:
+```c
+cons char *texto;
+sprintf(ptr,"%s",texto);
+
+//Se debe actualizar el apuntador para que ya no apunte al comienzo
+
+ptr += strlen(texto);
+```
+
+#### Procesos que quieran engancharse
+
+La deben abrir:
+```c
+
+int fd; // descriptor de archivo del área de memoria compartida 
+fd = shm_open(name, flag, 0666);
+```
+
+Mapea el area de memoria:
+```c
+char *ptr; // puntero apuntando al area de memoria
+ptr = mmap(0, SIZE, PROT_READ, MAP_SHARED, fd, 0);
+//direccion de inicio, tamaño, permisos, flag, descriptor, desplazamiento//
+```
+
+leer los bytes de la area compartida:
+```c
+printf("%s\n",(char *)ptr); // (char *)ptr me da el valor que hay en esa direccion de memoria
+```
+
+Si ya no se va a usar se desvincula / desengancha:
+```c
+shm_unlink(name);
+```
+
+### Condiciones de carrera
+
+2 o mas procesos escribiendo en el mismo lado
+
+Habian problemas si 2 procesos entran a la vez, a quien se le da prioridad (decide el planificador) y se puede volver un caos (seccion critica).
+
+**Interbloqueos:** Ambos se quedan esperando a que el otro le de paso
+**Livelock:** Ej. Cuando 2 personas se mueven para el mismo lado (P_1 manda intencion de entrar, y P_2 tambien lo hace).
+
+#### Soluciones
+- Avisar que entro y que salio.
+- Exclusion mutua: regla que no pueden haber 2 procesos dentro a la vez.
+
+##### Solucion Peterson
+Esta solo es para 2 procesos
+
+sleep() --> Duerma mientras estoy adentro de la region critica.
+wakeup(PID) --> Levantese que ya sali de la region critica.
+
+### Semaforos
+Permite coordinacion entre procesos o hilos de un programa y evitar condiciones de carrera
+
+Se compila con:
+`gcc -pthread -o <archivo_resultado> <archivo_fuente.c> -lrt`
+
+se debe incluir `#include <semaphore.h>`
+#### Semaforos con nombre
+
+Crear / abrir:
+```c
+sem_t *sem_open(const char *name,
+                int oflag,
+                mode_t mode,
+                unsigned int value);
+```
+
+- se deberia guardar en una variable `sem_t *sem`, sem guardaria un descriptor que es necesario y usado.
+
+- `sem_t` tipo de datos para representar semaforos
+- `value` valor con el que va a iniciar el semaforo
+
+**OFLAGS**
+| Oflags      | Descripción                                                         |
+|-------------|---------------------------------------------------------------------|
+| `O_CREAT`   | Crea el semáforo si no existe.                                      |
+| `O_EXCL`    | Si `O_CREAT` también está presente y el semáforo ya existe, la llamada fallará. |
+| `O_RDWR`    | Permite tanto lectura como escritura.                               |
+| `O_RDONLY`  | Permite únicamente lectura.                                         |
+| `O_WRONLY`  | Permite únicamente escritura.                                       |
+
+Se suele tener un patron tipico para proteger la region critica
+
+```c
+/* obtener el semáforo */
+sem_wait(sem); 
+/* sección crítica */
+/* liberar el semáforo: signal() */
+sem_post(sem);
+```
+
+- `sem_wait(sem)` se usa para avisar que entro.
+- `sem_post(sem)` se usa para avisar que salio.
+
+### EJEMPLO CON USO DE SEMAFOROS, USO DE FORK Y MEMORIA COMPARTIDA.
+En este ejemplo se comunica un proceso padre con un proceso hijo, el hijo le envio una cadena de textos en minuscula y el padre la recibe y la convierte en mayuscula.
+
+```c
+// Proceso principal
+int main() {
+  const char *name = "mparcial";
+  const int SIZE = sizeof(char) * 2000;
+  int fd;
+
+  // Crear semáforos
+  sem_t *sem_padre;
+  sem_t *sem_hijo;
+
+  // Inicializar semáforos con nombre
+  sem_padre = sem_open("sem_padre", O_CREAT, 0666, 0);
+  sem_hijo = sem_open("sem_hijo", O_CREAT, 0666, 0);
+
+  // Se crea la memoria compartida - Identidicador de la memoria fd(file descriptor)
+  fd = shm_open(name, O_CREAT | O_RDWR, 0666);
+  if (fd == -1) {
+    perror("Error en shm_open");
+    return -1;
+  }
+  // Configura el tamaño de la memoria compartida
+  ftruncate(fd, SIZE);
+
+  // Se crea la direccion del puntero
+  char *ptr;
+
+  // Se crea el proceso hijo
+  int pid = fork(); 
+  if (pid < 0) {
+    perror("Error al crear al hijo");
+    return 1;
+  }
+
+  // Se inicia la ejecución principal del codigo
+  if (pid == 0) {
+    // El hijo mapea la memoria compartida usando el puntero ptr(pointer to reference)
+    ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
+      perror("Error mmap (hijo)");
+      return -1;
+    }
+
+    // Ciclo infinito para leer y escribir datos
+    while (1) {
+      // Semaforo para que el hijo espere a que el padre escriba algo
+      sem_wait(sem_hijo); 
+      printf("Proceso hijo recibe: %s", (char *)ptr);
+      convertirAMayusculas((char *)ptr);
+      // Se le da luz verde al padre, para que imprima los caracteres modificados
+      sem_post(sem_padre);
+    }
+  } else {
+    // El padre mapea la memoria compartida usando el puntero ptr(pointer to reference)
+    ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
+      perror("Error MAP_FAILED");
+      return (-1);
+    }
+
+    while (1) {
+      char texto_ingresar[SIZE];
+      printf("Ingrese cadena de texto: ");
+      fgets(texto_ingresar, sizeof(texto_ingresar), stdin);
+      sprintf(ptr, "%s", texto_ingresar);
+      // Le damos luz verde al hijo, para que transforme la cadena de texto
+      sem_post(sem_hijo);
+      // Esperamos la cadena de texto transformada
+      sem_wait(sem_padre);
+      // Imprimimos la cadena de texto transformada
+      printf("Padre (despues de la conversion del hijo): %s", ((char *)ptr));
+      // Borramos los caracteres que habian en la memoria compartida, para asi no tener que actualizar el apuntador ptr
+      memset(ptr, 0, SIZE);
+    }
+  }
+  sem_close(sem_padre);
+  sem_close(sem_hijo);
+  return 0;
+}
+```
